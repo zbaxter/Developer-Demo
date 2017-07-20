@@ -1,0 +1,3563 @@
+####################################################
+#Chapter 1: The Elastic Stack
+
+#Indexing Data
+DELETE my_index
+PUT /my_index
+
+PUT /my_index/doc/1
+{
+	"username":"harrison", 
+	"comment":"My favorite movie is Star Wars!"
+}
+
+POST /my_index/doc/
+{
+  "username" : "maria",
+  "comment" : "The North Star is right above my house."
+}
+
+POST /my_index/doc/
+{
+  "username" : "eniko",
+  "comment" : "My favorite movie star in Hollywood is Harrison Ford."
+}
+
+GET /my_index/doc/1
+
+#Searching Data
+GET /my_index/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /my_index/_search
+
+#CRUD Operations
+PUT my_index/doc/4
+{
+  "username" : "kimchy",
+  "comment" : "I like search!"
+}
+
+PUT my_index/doc/4/_create
+{
+  "username" : "kimchy",
+  "comment" : "I like search!"
+}
+
+GET my_index/doc/4
+
+GET my_index/doc/4/_update
+{
+  "doc" : {
+    "comment" : "I love search!!"
+  }
+}
+
+DELETE my_index/doc/4
+
+PUT my_index/doc/5/_create
+{
+  "username" : "ricardo",
+  "comment" : "I love search too"
+}
+
+PUT my_index/doc/6
+{
+  "username" : "maria",
+  "comment" : "It's a great day for search"
+}
+
+
+#The Bulk API
+POST _bulk
+{"create" : {"_index" : "customers", "_type":"customer_type", "_id":102}}
+{"firstname" : "Maureen","lastname" : "O'Hara","address" : "12 Elm St","city":"Brooklyn"}
+{"index" : {"_index" : "customers", "_type":"customer_type", "_id":103}}
+{"firstname" : "Lucy","lastname" : "Liu","address" : "39 Pine Tree Ln","city":"Albany"}
+{"delete" : {"_index" : "customers", "_type":"customer_type", "_id":104}}
+{"update" : {"_index" : "customers", "_type":"customer_type", "_id":103}}
+{"doc" : {"firstname" : "Lucille"}}
+
+GET customers/_search
+
+
+######################################################
+#Chapter 2: The Search API
+
+#URI Searches
+GET /my_index/_search?q=comment:hollywood
+
+#The match Query
+GET my_index/_search
+{
+  "query": {
+    "match": {
+      "comment": "favorite star"
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "match": {
+      "comment": {
+        "query": "favorite star",
+        "operator": "and"
+      }
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "match": {
+      "comment": {
+        "query": "my favorite movie",
+        "minimum_should_match" : "2"
+      }
+    }
+  }
+}
+
+#The match_phrase Query
+GET my_index/_search
+{
+  "query": {
+    "match_phrase": {
+      "comment": "north star"
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "match": {
+      "comment": "north star"
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "match_phrase": {
+      "comment": {
+        "query": "favorite star"
+      }
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "match_phrase": {
+      "comment": {
+        "query": "favorite star",
+        "slop" : 1
+      }
+    }
+  }
+}
+
+#The range Query
+#The following queries require the datasets/stocks documents 
+#cat datasets/stock_market/stocks.txt | logstash/bin/logstash -f datasets/stock_market/stocks.conf
+
+GET stocks/_search
+{
+  "query": {
+    "range": {
+      "open": {
+        "gte": 50.00,
+        "lte": 60.00
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "query": {
+    "range": {
+      "trade_date": {
+        "gte": "2009-08",
+        "lt": "2009-09"
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "query": {
+    "range": {
+      "trade_date": {
+        "gte": "now-15y"
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "query": {
+    "range": {
+      "trade_date": {
+        "gte": "now-1d"
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "query": {
+    "range": {
+      "trade_date": {
+        "gte": "2009-06-01||+1y"
+      }
+    }
+  }
+}
+
+#The bool Query
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {}
+      ],
+      "must_not": [
+        {}
+      ],
+      "should": [
+        {}
+      ],
+      "filter": [
+        {}
+      ]
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query" : {
+    "bool" : {
+      "must" : [
+        {"match" : {"comment" : "star"}},
+        {"match" : {"username" : "harrison"}}
+        ]
+    }
+  }
+}
+
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": 
+        {"match": {"comment": "star"}},
+      "must_not": 
+        {"match":{"comment":"wars"}}
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": 
+        {"match": {"comment":  "star"}},
+      "should": 
+        {"match":{"comment":"wars"}}
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": 
+        {"match": {"comment": "star"}},
+      "should": [
+        {"match": {"comment": "favorite"}},
+        {"match": {"comment": "hollywood"}},
+        {"match": {"comment": "famous"}},
+        {"match": {"username": "harrison"}}
+      ],
+      "minimum_should_match": "50%"
+    }
+ }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {
+          "comment": "movie star"
+        }}
+      ],
+      "should": [
+        {"match_phrase": {
+          "comment": "movie star"
+        }}
+      ]
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {"match": {"comment": "north"}},
+        {"match": {"comment": "south"}},
+        {"match": {"comment": "east"}},
+        {"match": {"comment": "west"}}
+      ]
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "should": 
+        {
+          "bool" : {
+            "must_not" : {
+              "match" : {
+                "comment" : "house"
+              }
+            }
+          }
+        }
+    }
+  }
+}
+
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "comment": "star"
+          }
+        }
+      ], 
+      "should": [
+        {
+          "bool": {
+            "must_not": [
+              {
+                "match": {
+                  "comment": "wars"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+
+#Source Filtering
+GET stocks/_search?_source=open,close
+{
+  "query": {
+    "range": {
+      "open": {
+        "gte": 50.00,
+        "lte": 60.00
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "_source": ["open", "close"], 
+  "query": {
+    "range": {
+      "open": {
+        "gte": 50.00,
+        "lte": 60.00
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "_source": {
+    "includes": ["volume","*date*"],
+    "excludes": ["trade_date_text"]
+  },
+  "query": {
+    "range": {
+      "open": {
+        "gte": 50.00,
+        "lte": 60.00
+      }
+    }
+  }
+}
+
+GET my_index/doc/1/_source
+
+
+
+#Quiz
+GET my_index/doc/1/_source?_source_include=*e
+
+
+######################################################
+#Chapter 3: Text Analysis
+
+#Analyzers
+GET _analyze
+{
+  "analyzer": "simple", 
+  "text": "My favorite movie is Star Wars!"
+}
+
+GET _analyze
+{
+  "analyzer": "stop", 
+  "text": "My favorite movie is Star Wars!"
+}
+
+GET _analyze
+{
+  "analyzer": "standard", 
+  "text": "My favorite movie is Star Wars!"
+}
+
+
+GET _analyze
+{
+  "analyzer": "english", 
+  "text": "My favorite movie is Star Wars!"
+}
+
+
+GET _analyze
+{
+  "analyzer": "french", 
+  "text": "Mon film préféré est Star Wars!"
+}
+
+GET _analyze
+{
+  "analyzer": "keyword", 
+  "text": "My favorite movie is Star Wars!"
+}
+
+#Custom Analyzers
+GET _analyze
+{
+  "tokenizer":      "keyword", 
+  "char_filter":  [ "html_strip" ],
+  "text": "<strong>Welcome</strong> to the <em>jungle</em>"
+}
+
+#Character Filters
+GET _analyze
+{
+  "tokenizer": "keyword", 
+  "char_filter":  [ "html_strip" ],
+  "text": "Tom&apos;s <em>favorite</em> movie is Star Wars!"
+}
+
+
+GET /_analyze
+{
+  "char_filter": [
+    {
+      "type": "mapping",
+      "mappings": [ "C++ => cpp", "c++ => cpp"]
+    }
+  ],
+  "tokenizer": "keyword",
+  "text": "I like to code in C++ and Java."
+}
+
+GET /_analyze
+{
+  "char_filter": [
+    {
+      "type": "pattern_replace",
+      "pattern": "(\\d+)-(?=\\d)",
+      "replacement": "$1_"
+    }
+  ],
+  "tokenizer": "keyword",
+  "text": "123-45-6789"
+}
+
+#Tokenizers
+GET _analyze
+{
+  "tokenizer": "whitespace",
+  "text" : "I like to code in C++ and Java."
+}
+
+GET _analyze
+{
+  "tokenizer": "standard",
+  "text" : "I like to code in C++ and Java."
+}
+
+
+GET _analyze
+{
+  "tokenizer": "path_hierarchy",
+  "text" : "/usr/bin/java"
+}
+
+GET _analyze
+{
+  "tokenizer": "uax_url_email",
+  "text" : "Send emails to training@elastic.co please"
+}
+
+GET _analyze
+{
+  "tokenizer": "standard",
+  "text" : "Send emails to training@elastic.co please"
+}
+
+GET _analyze
+{
+  "tokenizer": "keyword",
+  "text" : "I like to code in C++ and Java."
+}
+
+GET _analyze
+{
+  "tokenizer": {
+      "type" : "pattern",
+      "pattern" : ","
+  },
+  "text" : "I like, to code, in C++ and Java."
+}
+
+
+GET _analyze
+{
+  "tokenizer": {
+      "type" : "edge_ngram",
+      "min_gram" : 2,
+      "max_gram" : 4,
+      "token_chars" : "letter"
+  },
+  "text" : "I like, to code, in C++ and Java."
+}
+
+#Token Filters
+GET _analyze
+{
+  "tokenizer": "standard", 
+  "filter":  [ "lowercase" ],
+  "text": "My favorite movie is Star Wars!"
+}
+
+GET _analyze
+{
+  "tokenizer":      "standard", 
+  "filter":  [ "lowercase", "snowball" ],
+  "text": "My favorite movie is Star Wars!"
+}
+
+#Order Matters
+GET _analyze
+{
+  "tokenizer": "whitespace", 
+  "filter":  ["lowercase",  "stop" ],
+  "text": "To Be Or Not To Be"
+}
+
+GET _analyze
+{
+  "tokenizer": "whitespace", 
+  "filter":  [ "stop", "lowercase" ],
+  "text": "To Be Or Not To Be"
+}
+
+GET _analyze
+{
+  "tokenizer":      "standard", 
+  "filter":  [ "lowercase", "snowball", "stop" ],
+  "text": "My favorite movie is Star Wars!"
+}
+
+GET _analyze
+{
+  "tokenizer":      "standard", 
+  "filter":  ["nGram"],
+  "text": "hello world"
+}
+
+GET _analyze
+{
+  "tokenizer":      "standard", 
+  "filter":  ["edgeNGram"],
+  "text": "hello world"
+}
+
+#ICU Analysis
+POST _analyze
+{
+  "tokenizer": "standard",
+  "text": ["星战争是我最喜欢的电影"]
+}
+
+POST _analyze
+{
+  "tokenizer": "icu_tokenizer",
+  "text": ["星战争是我最喜欢的电影"]
+}
+
+POST _analyze
+{
+  "tokenizer": "icu_tokenzier",
+  "text" : ""
+}
+
+#Defining Analyzers
+DELETE test_index
+PUT test_index
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_custom_analyzer" : {
+          "type" : "custom",
+          "char_filter" : ["html_strip"],
+          "tokenizer" : "standard",
+          "filter" : ["lowercase", "snowball"]
+        }
+      }
+    }
+  }
+}
+
+GET test_index/_settings
+
+POST test_index/_analyze
+{
+  "analyzer" : "my_custom_analyzer",
+  "text" : "<h1>Hello</h1>"
+}
+
+POST test_index/_analyze
+{
+  "analyzer" : "my_custom_analyzer",
+  "text" : "The quick brown fox jumped over the lazy dog."
+}
+
+DELETE test_index
+
+PUT test_index
+{
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "cpp_filter" : {
+          "type" : "mapping",
+          "mappings" : ["C++ => cpp", "c++ => cpp"]
+        }
+      }, 
+      "analyzer": {
+        "my_custom_analyzer" : {
+           "char_filter": ["cpp_filter"],
+           "tokenizer" : "standard"
+        }
+      }
+    }
+  }
+}
+
+GET test_index/_settings
+
+DELETE test_index
+
+PUT test_index
+{
+  "settings": {
+    "analysis": {
+      "char_filter": {
+        "cpp_filter" : {
+          "type" : "mapping",
+          "mappings" : ["C++ => cpp", "c++ => cpp"]
+        }
+      }, 
+      "filter": {
+        "my_stopwords" : {
+          "type" : "stop",
+          "stopwords" : ["my", "is"]
+        }
+      }, 
+      "analyzer": {
+        "my_custom_analyzer" : {
+           "char_filter": ["html_strip", "cpp_filter"],
+           "tokenizer" : "standard",
+           "filter" : ["lowercase","my_stopwords", "snowball"]
+        }
+      }
+    }
+  }
+}
+
+GET test_index/_settings
+
+GET test_index/_analyze
+{
+  "analyzer": "my_custom_analyzer", 
+  "text" : "C++ is my favorite language."
+}
+
+#Synonyms
+DELETE test_index
+
+PUT test_index 
+{
+  "settings" : { 
+    "analysis" : { 
+      "filter" : {
+        "my_synonyms" : { 
+          "type" : "synonym", 
+          "synonyms" : [
+            "jump, hop", "quick => fast"
+          ]} 
+      },
+      "analyzer" : { 
+        "my_analyzer" : {
+          "tokenizer" : "standard",
+          "filter" : [ "lowercase", "snowball", "my_synonyms" ] 
+        }
+      } 
+    }
+  } 
+}
+
+GET test_index/_settings
+
+POST test_index/_analyze
+{
+  "analyzer": "my_analyzer",
+  "text" : "The fox jumped quick"
+}
+
+POST test_index/_analyze
+{
+  "analyzer": "my_analyzer",
+  "text" : "The rabbit hopped fast"
+}
+
+PUT test_index/doc/1
+{
+  "text" : "The fox jumped quick"
+}
+
+PUT test_index/doc/2
+{
+  "text" : "The rabbit hopped fast"
+}
+
+GET test_index/_validate/query?explain
+{
+  "query": {
+    "match": {
+      "text": "hop"
+    }
+  }
+}
+
+GET _analyze
+{
+  "tokenizer":      "standard", 
+  "filter":  [ "lowercase", "snowball" ],
+  "text": "lucky"
+}
+
+#Segments
+PUT my_index/_settings
+{
+  "settings": {
+    "refresh_interval": "5s"
+  }
+}
+
+PUT my_index/doc/102/?refresh=wait_for
+{
+  "firstname" : "James",
+  "lastname" : "Brown",
+  "address" : "6011 Downtown Lane",
+  "city" : "Detroit"
+}
+
+
+#########################################################
+# Chapter 4: Mappings
+
+#What is a Mapping
+GET my_index/_mappings
+
+#Dynamic Mappings
+DELETE comments
+
+PUT comments/comment_type/1
+{
+  "user" : "Ricardo",
+  "comment" : "Best movie I've ever seen! :)",
+  "comment_time" : "2016-11-06T15:31:18-07:00",
+  "rating" : 5
+}
+
+GET comments/_mappings
+
+PUT comments/comment_type/2
+{
+    "num_of_views" : 430
+}
+
+PUT comments/comment_type/3
+{
+    "comment_time" : "2016-11-06"
+}
+
+PUT comments/comment_type/4
+{
+    "average_length" : 24
+}
+
+GET comments/_mappings
+
+
+#Defining Explicit Mappings
+DELETE temp_comments
+
+PUT temp_comments/comment_type/1
+{
+  "user" : "Ricardo",
+  "comment" : "Best movie I've ever seen! :)",
+  "comment_time" : "2016-11-06T15:31:18-07:00",
+  "rating" : 5
+}
+
+GET temp_comments/_mapping
+
+DELETE comments
+PUT comments
+{
+  "mappings": {
+      "comment_type": {
+        "properties": {
+          "comment": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "comment_time": {
+            "type": "date"
+          },
+          "rating": {
+            "type": "byte"
+          },
+          "user": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+}
+
+GET comments/_mapping
+
+PUT comments/comment_type/1
+{
+  "user" : "Ricardo",
+  "comment" : "Best movie I've ever seen! :)",
+  "comment_time" : "2016-11-06T15:31:18-07:00",
+  "rating" : 5
+}
+
+GET comments/_search
+{
+  "query": {
+    "match": {
+      "user": "ricardo"
+    }
+  }
+}
+
+GET comments/_search
+{
+  "query": {
+    "match": {
+      "user": "Ricardo"
+    }
+  }
+}
+
+DELETE comments
+PUT comments
+{
+  "mappings": {
+      "comment_type": {
+        "dynamic" : "strict",
+        "properties": {
+          "comment": {
+            "type": "text",
+            "analyzer": "english", 
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "comment_time": {
+            "type": "date"
+          },
+          "rating": {
+            "type": "byte"
+          },
+          "user": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+}
+
+#Can you change a mapping
+GET comments/_mapping
+
+PUT comments/_mappings/comment_type
+{
+  "properties": {
+    "comment_location" : {
+      "type" : "geo_point"
+    }
+  }
+}
+
+#------- dynamic mapping demo -------------
+DELETE comments2
+PUT comments2
+{
+  "mappings": {
+      "comment_type": {
+        "dynamic" : "strict",
+        "properties":   {
+          "comment": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "comment_time": {
+            "type": "date"
+          },
+          "rating": {
+            "type": "byte"
+          },
+          "user": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+}
+
+
+PUT comments2/comment_type/2
+{
+  "user" : "Tomas",
+  "new_field" : 1234
+}
+
+#Dive Deeper into Mappings
+PUT comments/comment_type/2
+{
+  "user" : "Maria",
+  "comment" : "Good morning everyone",
+  "comment_time" : "2017-05-15T07:14:39",
+  "rating" : 4
+}
+
+POST comments/comment_type/2/_update
+{
+  "doc": {
+    "rating" :  [4,3,5]
+  }
+}
+
+GET comments/comment_type/2
+
+PUT comments/comment_type/5
+{
+    "comment_time" : "2016-11-06T15:31:18-07:00"
+}
+
+DELETE comments
+PUT comments
+{
+  "mappings": {
+    "comment_type": {
+      "properties": {
+        "last_viewed" : {
+          "type": "date",
+          "format": "dd/MM/YYYY"
+        },
+        "comment_time" : {
+          "type": "date", 
+          "format" : "basic_date||epoch_millis"
+        }
+      }
+    }
+  }  
+}
+
+GET comments/_mappings
+
+PUT comments/comment_type/4
+{
+  "last_viewed" : "17/12/2016",
+  "comment_time" : "1481071407407"
+}
+
+GET comments/_search
+
+PUT comments/comment_type/5
+{
+  "last_viewed" : "01/31/2017"
+}
+
+PUT temp_comments/comment_type/1
+{
+  "user" : "Ricardo",
+  "comment" : "Best movie I've ever seen! :)",
+  "rating" : 5
+}
+
+GET temp_comments/_search
+{
+  "query": {
+    "match": {
+      "_all": "5"
+    }
+  }
+}
+
+DELETE comments
+PUT comments
+{
+  "mappings": {
+      "comment_type": {
+        "_all": {
+          "enabled": false
+        }, 
+        "properties": {
+          "comment": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "comment_time": {
+            "type": "date"
+          },
+          "rating": {
+            "type": "byte"
+          },
+          "user": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+}
+
+#The _meta field
+PUT comments/_mapping/comment_type
+{
+  "_meta" : {
+    "comment_type_version" : "2.1"
+  }
+}
+
+GET comments/_mappings
+
+#The _default_ mapping
+DELETE my_index
+PUT my_index
+{
+  "mappings": {
+    "_default_" : {
+      "_all" : {
+        "enabled" : false
+      }
+    }
+  }
+}
+
+#The copy_to Parameter
+DELETE comments2
+PUT comments2
+{
+  "mappings": {
+    "comment_type" : {
+      "properties": {
+        "comment": {
+          "type": "text"
+        },
+        "firstname": {
+          "type": "text",
+          "copy_to" : "fullname"
+        },
+        "lastname": {
+          "type": "text",
+          "copy_to" : "fullname"
+        },
+        "fullname": {
+          "type": "text"
+        }
+      }
+    }
+  }
+}
+
+PUT comments2/comment_type/1
+{
+  "comment" : "Testing copy_to",
+  "firstname" : "Robert",
+  "lastname" : "Smith"
+}
+
+PUT comments2/comment_type/2
+{
+  "comment" : "Testing copy_to",
+  "firstname" : "Cynthia",
+  "lastname" : "Robert"
+}
+
+GET comments2/_search
+{
+  "query": {
+    "match": {
+      "fullname": "robert"
+    }
+  }
+}
+
+#Specifying Analyzers
+DELETE comments
+
+PUT comments
+{
+  "mappings": {
+    "comment_type" : {
+      "properties": {
+        "comment" : {
+          "type": "text",
+          "analyzer": "english"
+        }
+      }
+    }
+  }
+}
+
+DELETE comments
+
+PUT comments 
+{
+  "settings" : { 
+    "analysis" : { 
+      "filter" : {
+        "my_synonyms" : { 
+          "type" : "synonym", 
+          "synonyms" : [
+            "jump, hop", "quick => fast"
+          ]} 
+      },
+      "analyzer" : { 
+        "my_analyzer" : {
+          "tokenizer" : "standard",
+          "filter" : [ "lowercase", "snowball", "my_synonyms" ] 
+        }
+      } 
+    }
+  },
+  "mappings": {
+    "comment_type" : {
+      "properties": {
+        "comment" : {
+          "type": "text",
+          "analyzer": "my_analyzer"
+        }
+      }
+    }
+  }
+}
+
+PUT comments/comment_type/1
+{
+  "comment" : "The quick rabbit can jump high"
+}
+
+GET comments/_search
+{
+  "query": {
+    "match": {
+      "comment": "hop"
+    }
+  }
+}
+
+#Multi-fields
+DELETE comments
+PUT comments
+{
+  "mappings": {
+      "comment_type": {
+        "properties": {
+          "comment": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              },
+              "english_comment" : {
+                "type" : "text",
+                "analyzer": "english"
+              },
+              "whitespace_comment" : {
+                "type" : "text",
+                "analyzer": "whitespace"
+              }
+            }
+          },
+          "comment_time": {
+            "type": "date"
+          },
+          "rating": {
+            "type": "byte"
+          },
+          "user": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+}
+
+PUT comments/comment_type/1
+{
+  "comment" : "Hello, world!"
+}
+
+GET comments/_search
+{
+  "query": {
+    "match": {
+      "comment.english_comment": "hello"
+    }
+  }
+}
+
+#Dynamic Templates
+DELETE my_index
+PUT my_index
+{
+  "mappings": {
+      "my_type": {
+        "dynamic_templates" : [
+          {
+            "my_integer_fields" : {
+              "match" : "i_*",
+              "mapping" : { "type" : "integer"}
+            }
+          },
+          {
+            "my_text_fields" : {
+              "match_mapping_type" : "string",
+              "mapping" : {
+                "type" : "text",
+                "analzyer" : "english",
+                "fields" : {
+                  "keyword" : {
+                    "type":"keyword"
+                  }
+                }
+              }
+            }
+          }
+          ]
+    }
+  }
+}
+
+GET my_index/_mappings
+
+PUT my_index/my_type/1
+{
+  "i_rating" : 4,
+  "username" : "Tomas"
+}
+
+GET my_index/_search
+
+#Index Templates
+DELETE my_index
+
+PUT _template/my_template_1
+{
+  "template" : "*",
+  "order" : 1,
+  "mappings": {
+     "my_type" : {
+        "_all": {
+          "enabled": false
+        }
+     }
+  }
+}
+
+PUT _template/my_template_2
+{
+  "template" : "my_*",
+  "order" : 5,
+  "mappings": {
+    "my_type" : {
+      "properties": {
+        "version" : {
+          "type" : "integer"
+        }
+      }
+    }
+  }
+}
+
+DELETE my_test
+
+PUT my_test
+
+GET my_test/_mappings
+
+GET _template
+
+DELETE _template/my_template_2
+
+
+######################################################
+# Chapter 5: Search Concepts
+#We have a new dataset...
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "brand_name": "tostitos"
+    }
+  }
+}
+
+#Filters
+GET my_index/_search
+{
+  "query": {
+    "bool": {
+      "must": 
+        {"match": {"comment": "star"}},
+      "filter": 
+        {"match":{"comment":"favorite"}}
+    }
+  }
+}
+
+#Term-level Queries
+GET nutrition/_search
+{
+  "query": {
+    "term": {
+      "brand_name.keyword" : "Market Pantry"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "term": {
+      "brand_name.keyword" : "Market"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {
+          "ingredients": "syrup"
+        }}
+      ],
+      "filter": {
+        "term": {
+          "brand_name.keyword": "Market Basket"
+        }
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "terms": {
+          "brand_name.keyword": [
+            "Market Basket",
+            "Nabisco",
+            "Barilla"
+          ]
+        }
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "bool": {
+      "must": 
+        {
+          "match": {
+            "item_name": "cookie"
+          }
+        }
+      ,
+      "filter": {
+        "wildcard": {
+          "brand_name.keyword": {
+            "value": "Ste*"
+          }
+        }   
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "bool": {
+      "must": [
+        {"match": {
+          "item_name": "cookie"
+        }}
+      ],
+      "filter": {
+        "exists": {
+          "field": "ingredients"
+        }
+      }
+    }
+  }
+}
+
+#The multi_match Query
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "olive oil",
+      "fields": ["item_name", "ingredients"]
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "olive oil",
+      "fields": ["item_name", "ingredients^2"]
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "rice",
+      "fields": ["*name", "ingredients"]
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "rice",
+      "fields": ["*name", "ingredients"],
+      "type": "most_fields"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "rice",
+      "fields": ["*name", "ingredients"],
+      "type": "best_fields"
+    }
+  }
+}
+
+#Fuzziness
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients" :  "sugar"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients" :  "suger"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients" : {
+        "query" : "suger",
+        "fuzziness": 1
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "brand_name": {
+        "query": "j & d",
+        "fuzziness": 2
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "brand_name": {
+        "query": "j & d",
+        "fuzziness": "auto"
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "ingredients": "citric acid"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients" : {
+        "query" : "sitrik acet",
+        "fuzziness": 2
+      }
+    }
+  }
+}
+
+#Highlighting
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients": "oil"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "ingredients" : {}
+    }
+  }
+}
+
+#Does not highlight item_name (search for "Shaw's" for example)
+GET nutrition/_search
+{
+  "size": 200, 
+  "query" : {
+    "match": {
+      "ingredients": "oil"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "ingredients" : {},
+      "item_name" : {}
+    }
+  }
+}
+
+#Does highlight item_name
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "oil", 
+      "fields": ["ingredients", "item_name"]
+    }
+  },
+  "highlight": {
+    "fields": {
+      "ingredients" : {},
+      "item_name" : {}
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "multi_match": {
+      "query": "oil", 
+      "fields": ["ingredients", "item_name"]
+    }
+  },
+  "highlight": {
+    "pre_tags" : ["<elasticsearch-hit>"],
+    "post_tags" : ["</elasticsearch-hit>"],
+    "fields": {
+      "ingredients" : {},
+      "item_name" : {}
+    }
+  }
+}
+
+#The match_phrase_prefix Query
+GET nutrition/_search
+{
+  "query" : {
+    "match_phrase_prefix": {
+      "item_name": {
+        "query": "chocolate ch",
+        "max_expansions" : 20
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "match_phrase_prefix": {
+      "item_name": {
+        "query": "chocolate chi",
+        "max_expansions" : 20
+      }
+    }
+  }
+}
+
+#Suggesters
+GET nutrition/_mappings
+
+PUT nutrition/_mapping/doc
+{
+  "properties": {
+    "item_name": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "item_name_suggest" : {
+          "type": "completion"
+        }
+      }
+    }    
+  }
+}
+
+POST nutrition/_update_by_query
+
+GET nutrition/_search
+{
+  "suggest" : {
+    "my_suggestions" : {
+      "prefix" : "ice",
+      "completion" : {
+        "field" : "item_name.item_name_suggest",
+        "size" : 10
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "suggest" : {
+    "my_suggestions" : {
+      "prefix" : "iced",
+      "completion" : {
+        "field" : "item_name.item_name_suggest",
+        "size" : 10
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "suggest" : {
+    "my_suggestions" : {
+      "prefix" : "iced cof",
+      "completion" : {
+        "field" : "item_name.item_name_suggest",
+        "size" : 10
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "suggest" : {
+    "my_suggestions" : {
+      "prefix" : "ise",
+      "completion" : {
+        "field" : "item_name.item_name_suggest",
+        "size" : 10,
+        "fuzzy" : {
+          "fuzziness" : 1
+        }
+      }
+    }
+  }
+}
+
+
+PUT nutrition/_mapping/doc
+{
+  "properties": {
+    "my_item_suggestion" : {
+      "type": "completion"
+    }
+  }
+}
+
+#You will need the _id for 7-Up
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "brand_name": "7-up"
+    }
+  }
+}
+
+#Add custom suggesters for 7-up
+POST nutrition/doc/AVv-kZCazWyyiGorJZ5a/_update
+{
+  "doc" : {
+    "my_item_suggestion" : ["pop", "soda"]
+  }
+}
+
+GET nutrition/_search
+{
+  "suggest" : {
+    "my_suggestions" : {
+      "prefix" : "pop",
+      "completion" : {
+        "field" : "my_item_suggestion",
+        "size" : 10
+      }
+    }
+  }
+}
+
+#Index Aliases
+POST _aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "INDEX_NAME",
+        "alias": "ALIAS_NAME"
+      }
+    }
+  ]
+}
+
+POST _aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "my_index",
+        "alias": "my_alias"
+      }
+    }
+  ]
+}
+
+GET my_alias/_search
+{
+  "query": {
+    "match_all": {}
+  }  
+}
+
+######################################################
+# Chapter 6: The Distributed Model
+
+#Creating an Index
+DELETE my_index
+PUT my_index
+
+DELETE my_index
+PUT my_index
+{
+  "settings": {
+    "number_of_shards": 6
+  }
+}
+
+#Distributing Documents
+PUT my_index/doc/101
+{
+  "firstname" : "Robert",
+  "lastname" : "Smith",
+  "city" : "Lancashire"
+}
+
+GET my_index/_search?version=1
+
+PUT my_index/doc/101
+{
+  "firstname" : "Robert",
+  "lastname" : "Smith",
+  "city" : "London"
+}
+
+GET my_index/_search?version=true
+
+PUT my_index/doc/101/_create
+{
+  "firstname" : "Robert",
+  "lastname" : "Smith",
+  "city" : "Lancashire"
+}
+
+POST my_index/doc/101/_update
+{
+  "doc" : {
+    "city": "Chelmsford"
+  }
+}
+
+#Replication
+PUT my_index/_settings
+{
+  "number_of_replicas": 1
+}
+
+DELETE my_index*
+
+PUT my_index
+{
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1
+  }
+}
+
+PUT my_index/doc/101
+{
+  "firstname" : "Robert",
+  "lastname" : "Smith",
+  "city" : "Lancashire"
+}
+
+PUT my_index/_settings
+{
+  "number_of_replicas": 2
+}
+
+GET my_index/doc/101
+
+GET my_index/doc/101?preference=_local
+
+PUT my_index/doc/102
+{
+  "firstname" : "James",
+  "lastname" : "Brown",
+  "address" : "6011 Downtown Lane",
+  "city" : "Detroit"
+}
+
+GET _mget
+{
+  "docs" : [
+    {
+      "_index" : "products",
+      "_type" : "product",
+      "_id" : 101
+    },
+    {
+      "_index" : "my_index",
+      "_type" : "doc",
+      "_id" : 102
+    }
+    ]
+}
+
+DELETE my_index/doc/101
+
+POST my_index/_forcemerge
+
+######################################################
+# Chapter 7: Working with Search Results
+
+#Boosting Relevance
+DELETE my_index
+
+PUT my_index/my_type/1
+{
+  "username" : "harrison",
+  "comment" : "My favorite movie is Star Wars!"
+}
+
+PUT my_index/my_type/2
+{
+  "username" : "maria",
+  "comment" : "The North Star is right above my house."
+}
+
+PUT my_index/my_type/3
+{
+  "username" : "eniko",
+  "comment" : "My favorite movie star in Hollywood is Harrison Ford."
+}
+
+
+
+GET my_index/my_type/_search
+{
+  "query" : {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "comment": "star"
+          }
+        },
+        {
+          "match" : {
+            "comment" : {
+              "query": "house",
+              "boost" : 2
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+#DFS Query_then_fetch demo
+GET my_index/_search
+{
+  "query" : {
+    "match": {
+      "comment": "star"
+    }
+  }
+}
+
+GET my_index/_search?search_type=dfs_query_then_fetch
+{
+  "query" : {
+    "match": {
+      "comment": "star"
+    }
+  }
+}
+
+#Let's force a skewed distribution with routing
+DELETE my_index
+PUT my_index/my_type2/1?routing=1
+{
+  "username" : "harrison",
+  "comment" : "My favorite movie is Star Wars!",
+  "views" : 34
+}
+
+
+PUT my_index/my_type2/2?routing=2
+{
+  "username" : "maria",
+  "comment" : "The North Star is right above my house.",
+  "views" : 872
+}
+
+PUT my_index/my_type2/3?routing=1
+{
+  "username" : "eniko",
+  "comment" : "My favorite movie star in Hollywood is Harrison Ford.",
+  "views" : 449
+}
+
+GET my_index/my_type2/_search
+{
+  "query" : {
+    "match_phrase_prefix": {
+      "comment": "sta"
+    }
+  }
+}
+
+
+
+GET my_index/my_type2/_search?search_type=dfs_query_then_fetch
+{
+  "query" : {
+    "match_phrase_prefix": {
+      "comment": "sta"
+    }
+  }
+}
+
+
+#Sorting Results
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients": "chocolate"
+    }
+  },
+  "sort": [
+    {
+      "details.total_fat": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+"hits": {
+  "total": 15,
+  "max_score": null,
+  "hits": [
+    {
+      "_index": "nutrition",
+      "_type": "doc",
+      "_id": "AVv-kZCazWyyiGorJZ5Y",
+      "_score": null,
+      "_source": {
+        ...
+        "brand_name": "ProBar",
+        "item_name": "Bar, Koka Moka",
+        "details": {
+          "total_fat": 18,
+          "calories_from_fat": 170,
+          "calories": 360,
+          "saturated_fat": 5
+        },
+        "item_description": "Koka Moka"
+      },
+      "sort": [
+        18
+      ]
+    },
+
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients": "chocolate"
+    }
+  },
+  "sort": [
+    {
+      "servings.servings_per_container": {
+        "order": "desc"
+      }
+    },
+    {
+      "_score" : {
+        "order" : "desc"
+      }
+    }
+  ]
+}
+
+GET nutrition/_search
+{
+  "query" : {
+    "match": {
+      "ingredients": "chocolate"
+    }
+  },
+  "sort": [
+    "_doc"
+  ]
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "match" : {
+      "item_name" : "yogurt"
+    }
+  },
+  "sort" : [
+    {
+      "brand_name" : {
+        "order" : "asc"
+      }
+    }
+  ]
+}
+
+#Sorting by Strings
+GET nutrition/_search
+{
+  "query": {
+    "match" : {
+      "item_name" : "yogurt"
+    }
+  },
+  "sort" : [
+    {
+      "brand_name.keyword" : {
+        "order" : "asc"
+      }
+    }
+  ]
+}
+
+#The following query demonstrates "del Monte" as the last item in the list of brand names
+GET nutrition/_search
+{
+  "_source": false, 
+  "size": 20, 
+  "query": {
+    "match" : {
+      "item_name" : "yogurt"
+    }
+  },
+  "sort" : [
+    {
+      "brand_name.keyword" : {
+        "order" : "asc"
+      }
+    }
+  ]
+}
+
+#Normalizers
+DELETE  nutrition2
+
+PUT nutrition2
+{
+  "settings": {
+    "analysis": {
+      "normalizer" : {
+        "my_normalizer" : {
+          "type" : "custom",
+          "filter" : ["lowercase"]
+        }
+      }      
+    }
+  },
+  "mappings": {
+    "doc" : {
+      "properties": {
+          "brand_name": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "normalizer": "my_normalizer"
+              }
+            }
+          },
+          "calories": {
+            "type": "long"
+          },
+          "calories_from_fat": {
+            "type": "float"
+          },
+          "details": {
+            "properties": {
+              "calories": {
+                "type": "long"
+              },
+              "calories_from_fat": {
+                "type": "float"
+              },
+              "saturated_fat": {
+                "type": "float"
+              },
+              "total_fat": {
+                "type": "float"
+              }
+            }
+          },
+          "ingredients": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "item_description": {
+            "type": "text"
+          },
+          "item_name": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "saturated_fat": {
+            "type": "float"
+          },
+          "serving_size_qty": {
+            "type": "float"
+          },
+          "serving_size_unit": {
+            "type": "keyword"
+          },
+          "servings": {
+            "properties": {
+              "serving_size_qty": {
+                "type": "float"
+              },
+              "serving_size_unit": {
+                "type": "text",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "servings_per_container": {
+                "type": "float"
+              }
+            }
+          },
+          "servings_per_container": {
+            "type": "float"
+          },
+          "total_fat": {
+            "type": "float"
+          }
+      }
+    }
+  }
+}
+
+POST _reindex
+{
+  "source": {
+    "index": "nutrition"
+  },
+  "dest": {
+    "index": "nutrition2"
+  }
+}
+
+GET nutrition2/_search
+{
+  "size": 20, 
+  "query": {
+    "match" : {
+      "item_name" : "yogurt"
+    }
+  },
+  "sort" : [
+    {
+      "brand_name.keyword" : {
+        "order" : "asc"
+      }
+    }
+  ]
+}
+
+#Pagination
+GET nutrition/_search
+{
+  "from": 0,
+  "size": 10,
+  "query": {
+    "match": {
+      "ingredients" : "onion"
+    }
+  },
+  "sort" : [
+    {
+      "details.calories" : {
+        "order" : "desc"
+      }
+    }
+  ]
+}
+
+GET nutrition/_search
+{
+  "from": 10,
+  "size": 10,
+  "query": {
+    "match": {
+      "ingredients" : "onion"
+    }
+  },
+  "sort" : [
+    {
+      "details.calories" : {
+        "order" : "desc"
+      }
+    }
+  ]
+}
+
+
+GET nutrition/_search
+{
+  "size": 10,
+  "query": {
+    "match": {
+      "ingredients" : "onion"
+    }
+  },
+  "sort" : [
+    {"details.calories" : {"order" : "desc"}},
+    {"_score": {"order": "desc"}},
+    {"_uid" : {"order" : "asc"}}
+  ]
+}
+
+GET nutrition/_search
+{
+  "size": 10,
+  "query": {
+    "match": {
+      "ingredients" : "onion"
+    }
+  },
+  "search_after" : [
+          270,
+          1.0284368,
+          "doc#AVwBRWkdzWyyiGorJZ_j"
+        ],
+  "sort" : [
+    {"details.calories" : {"order" : "desc"}},
+    {"_score": {"order": "desc"}},
+    {"_uid" : {"order" : "asc"}}
+  ]
+}
+
+#Scroll searches
+GET nutrition/_search?scroll=30s
+{
+  "size": 100, 
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    "_doc"
+  ]
+}
+
+GET _search/scroll
+{
+  "scroll" : "30s",
+  "scroll_id" : "DnF1ZXJ5VGhlbkZldGNoBQAAAAAAAEPmFlZycnNiS3NBU2FHa1dMX3U1X2pxdUEAAAAAAABD6hZWcnJzYktzQVNhR2tXTF91NV9qcXVBAAAAAAAAQ-cWVnJyc2JLc0FTYUdrV0xfdTVfanF1QQAAAAAAAEPpFlZycnNiS3NBU2FHa1dMX3U1X2pxdUEAAAAAAABD6BZWcnJzYktzQVNhR2tXTF91NV9qcXVB"
+}
+
+DELETE _search/scroll
+{
+  "scroll_id" : [""]
+}
+
+DELETE _search/scroll/
+
+
+######################################################
+# Chapter 8: Aggregations
+
+#What are Aggregations?
+GET nutrition/_search
+{
+  "query" : {
+    "match_phrase": {
+      "ingredients": "olive oil"
+    }
+  },
+  "aggs": {
+    "my_avg_calories": {
+      "avg": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size": 0, 
+  "query" : {
+    "match_phrase": {
+      "ingredients": "olive oil"
+    }
+  },
+  "aggs": {
+    "my_avg_calories": {
+      "avg": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+#Common Metrics Aggregations
+GET nutrition/_search
+{
+  "size" : 0,
+  "query" : {
+    "match": {
+      "ingredients": "sugar"
+    }
+  },
+  "aggs" : {
+    "my_sugar_calorie_average" : {
+      "avg": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_max_calorie_item" : {
+      "max": {
+        "field": "details.calories"
+      }
+    },
+    "my_min_calorie_item" : {
+      "min": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+#Find the item(s) with the most calories
+GET nutrition/_search
+{
+  "query" : {
+    "term": {
+      "details.calories": {
+        "value": 630
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_calorie_stats" : {
+      "stats": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs": {
+    "my_brand_name_cardinality": {
+      "cardinality": {
+        "field": "brand_name.keyword",
+        "precision_threshold": 100
+      }
+    }
+  }
+}
+
+#The range Aggregation
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_calorie_range_buckets" : {
+      "range": {
+        "field": "details.calories",
+        "ranges": [
+          {
+            "to": 100
+          },
+          {
+            "from": 100,
+            "to": 200
+          },
+          {
+            "from" : 200
+          }
+        ]
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_calorie_range_buckets" : {
+      "range": {
+        "field": "details.calories",
+        "ranges": [
+          {
+            "key" : "low_calorie", 
+            "to": 100
+          },
+          {
+            "key" : "medium_calorie", 
+            "from": 100,"to": 200
+          },
+          {
+            "key" : "high_calorie", 
+            "from" : 200
+          }
+        ]
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_calorie_range_buckets" : {
+      "range": {
+        "field": "details.calories",
+        "ranges": [
+          {"to": 100},
+          {"from": 100,"to": 200},
+          {"from" : 200}
+        ]
+      },
+      "aggs": {
+        "average_total_fat": {
+          "avg": {
+            "field": "details.total_fat"
+          }
+        }
+      }
+    }
+  }
+}
+
+#The date_range Aggregation
+GET stocks/_search
+{
+  "size": 0,
+  "aggs": {
+    "my_week_comparison": {
+      "date_range": {
+        "field": "trade_date",
+        "ranges": [
+          {
+            "from": "2010-01-01||-1w",
+            "to": "2010-01-01"
+          },
+          {
+            "from": "2010-01-01",
+            "to": "2010-01-01||+1w"
+          }
+        ]
+      },
+      "aggs": {
+        "my_total_volume": {
+          "sum": {
+            "field": "volume"
+          }
+        }
+      }
+    }}}
+
+#The terms Aggregation
+GET products/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_customer_ratings" : {
+      "terms": {
+        "field": "customerRating",
+        "size": 5
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_brand_names" : {
+      "terms": {
+        "field": "brand_name.keyword"
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_brand_names" : {
+      "terms": {
+        "field": "brand_name.keyword",
+        "show_term_doc_count_error": true
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_brand_names" : {
+      "terms": {
+        "field": "brand_name.keyword",
+        "show_term_doc_count_error": true,
+        "size": 5,
+        "shard_size": 110
+      }
+    }
+  }
+}
+
+#Nesting Buckets
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "my_brand_name_buckets" : {
+      "terms": {
+        "field": "brand_name.keyword",
+        "size" : 10,
+        "shard_size" : 45
+      },
+      "aggs": {
+        "my_calories_buckets": {
+          "range": {
+            "field": "calories",
+            "ranges": [
+              {
+                "from": 0,
+                "to": 100
+              },
+              {
+                "from" : 100
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs" : {
+    "brand_name_buckets" : {
+      "terms": {
+        "field": "brand_name.keyword",
+        "size" : 10,
+        "shard_size" : 45
+      },
+      "aggs": {
+        "calories_buckets": {
+          "range": {
+            "field": "details.calories",
+            "ranges": [
+              {
+                "from": 0,
+                "to": 100
+              },
+              {
+                "from" : 100
+              }
+            ]
+          },
+          "aggs": {
+            "max_calorie": {
+              "max": {
+                "field": "details.calories"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+######################################################
+# Chapter 9: More Aggregations
+
+#Aggregation Scope
+
+#Global Aggregation
+GET nutrition/_search
+{ "size": 0, 
+  "query": {
+    "term": {
+      "details.calories": 120
+    }
+  },
+  "aggs": {
+    "max_total_fat_from_120" : {
+      "max": {
+        "field": "details.total_fat"
+      }
+    },
+    "all_of_my_items" : {
+      "global": {},
+      "aggs" : {
+        "max_total_fat_from_all": {
+          "max": {
+            "field": "details.total_fat"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+#Using post_filter
+GET nutrition/_search
+{
+  "query": {
+    "match_phrase": {
+      "item_name": "feta cheese"
+    }
+  },
+  "aggs": {
+    "popular_brand_names": {
+      "terms": {
+        "field": "brand_name.keyword",
+        "size": 10
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "item_name": "cheese"
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "query": {
+    "match": {
+      "item_name": "cheese"
+    }
+  },
+  "aggs": {
+    "popular_brand_names": {
+      "terms": {
+        "field": "brand_name.keyword",
+        "size": 10
+      }
+    }
+  },
+  "post_filter": {
+    "match" : {
+      "item_name" : "feta"
+    }
+  }
+}
+
+#The missing Aggregations
+PUT nutrition/_mapping/doc
+{
+  "properties" : {
+    "ingredients" : {
+      "type" : "text",
+      "fielddata" : true
+    }
+  }
+}
+
+GET nutrition/_search
+{
+"size": 0, 
+"aggs": {
+  "my_missing_ingredients": {
+    "missing": {
+      "field": "ingredients"
+    },
+    "aggs": {
+      "my_brands": {
+        "terms": {
+          "field": "brand_name.keyword"
+        }
+      }
+    }
+  }
+}
+}
+
+#Histograms
+GET nutrition/_search
+{
+  "size": 0,
+  "aggs": {
+    "my_calories_histogram": {
+      "histogram": {
+        "field": "details.calories",
+        "interval": 100
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size": 0,
+  "aggs": {
+    "my_calories_histogram": {
+      "histogram": {
+        "field": "details.calories",
+        "interval": 100,
+        "min_doc_count": 10
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size": 0,
+  "aggs": {
+    "my_calories_histogram": {
+      "histogram": {
+        "field": "details.calories",
+        "interval": 100,
+        "min_doc_count": 10
+      },
+      "aggs": {
+        "my_bucket_stats": {
+          "stats": {
+            "field": "details.calories"
+          }
+        }
+      }
+    }
+  }
+}
+
+#Date Histograms
+GET stocks/_search
+{
+  "size": 0, 
+  "aggs": {
+    "my_weekly_buckets": {
+      "date_histogram": {
+        "field": "trade_date",
+        "interval": "1w"
+      }
+    }
+  }
+}
+
+GET stocks/_search
+{
+  "query": {
+    "match": {
+      "stock_symbol": "SHW"
+    }
+  }, 
+  "size": 0,
+  "aggs": {
+    "my_stock_date_histogram": {
+      "date_histogram": {
+        "field": "trade_date",
+        "interval": "month"
+      },
+      "aggs": {
+        "my_avg_close": {
+          "avg": {
+            "field": "close"
+          }
+        }
+      }
+    }
+  }
+}
+
+#Percentiles
+GET nutrition/_search
+{
+  "size": 0, 
+  "aggs": {
+    "my_calorie_percentiles": {
+      "percentiles": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs": {
+    "my_calorie_quintiles": {
+      "percentiles": {
+        "field": "details.calories",
+        "percents": [
+          20,
+          40,
+          60,
+          80,
+          100
+        ]
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size": 0, 
+  "aggs": {
+    "my_calorie_percentiles": {
+      "percentile_ranks": {
+        "field": "details.calories",
+        "values": [150, 300]
+      }
+    }
+  }
+}
+
+#Top Hits
+GET nutrition/_search
+{
+  "size" : 0,
+  "query": {
+    "match": {
+      "ingredients": "sugar"
+    }
+  }, 
+  "aggs": {
+    "my_calorie_bucket": {
+      "terms": {
+        "field": "details.calories"
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "query": {
+    "match": {
+      "ingredients": "sugar"
+    }
+  }, 
+  "aggs": {
+    "my_calorie_bucket": {
+      "terms": {
+        "field": "details.calories"
+      },
+      "aggs": {
+        "my_top_hits": {
+          "top_hits": {
+           "size": 5
+          }
+        }
+      }
+    }
+  }
+}
+
+
+#Significant Terms
+PUT nutrition/_mapping/doc
+{
+  "properties" : {
+    "ingredients" : {
+      "type" : "text",
+      "fielddata" : true
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size": 0,
+  "query": {
+    "range": {
+      "details.calories": {
+        "gte": 300
+      }
+    }
+  }, 
+  "aggs": {
+    "my_sig_terms": {
+      "significant_terms": {
+        "field": "ingredients"
+      }
+    }
+  }
+}
+
+#Compare to terms agg
+GET nutrition/_search
+{
+	"size":0,
+	"aggs" : {
+		"my_total_fat_histogram":{
+			"histogram": {
+				"field": "details.total_fat",
+				"interval": 5,
+				"min_doc_count": 5
+			},       
+			"aggregations":{
+				"my_top_words" : { 
+					"terms" : {
+						"field" : "ingredients",
+						"size":5
+					} 
+				}
+			}
+		}
+	}
+}
+
+GET nutrition/_search
+{
+	"size":0,
+	"aggs" : {
+		"my_total_fat_histogram":{
+			"histogram": {
+				"field": "details.total_fat",
+				"interval": 5,
+				"min_doc_count": 5
+			},       
+			"aggregations":{
+				"my_top_words" : { 
+					"significant_terms" : {
+						"field" : "ingredients",
+						"size":5
+					} 
+				}
+			}
+		}
+	}
+}
+
+#Sorting Buckets
+GET stocks/_search
+{
+ "aggs": {
+    "my_stock_date_histogram": {
+      "date_histogram": {
+        "field": "trade_date",
+        "interval": "month",
+        "order": {
+          "_key": "desc"
+        }
+      },
+      "aggs": {
+        "my_avg_close": {
+          "avg": {
+            "field": "close"
+          }
+        }
+      }
+    }
+  }
+}
+
+GET nutrition/_search
+{
+  "size" : 0,
+  "aggs": {
+    "my_brands_bucket": {
+      "terms": {
+        "field": "brand_name.keyword",
+        "order": {
+          "my_max_calories": "desc"
+        }
+      },
+      "aggs": {
+        "my_max_calories": {
+          "max": {
+            "field": "details.calories"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+######################################################
+# Chapter 10: Handling Relationships
+
+#Denormalization
+DELETE tweets
+DELETE users
+
+PUT users/doc/1
+{
+  "username" : "harrison",
+  "userid" : 1,
+  "city" : "Los Angeles",
+  "state" : "California"
+}
+
+PUT tweets/doc/123
+{
+  "body" : "My favorite movie is Star Wars",
+  "time" : "2017-01-24T02:32:27",
+  "userid" : 1,
+  "username" : "harrison"
+}
+
+GET tweets/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"body": "movie"}},
+        {"match": {"username": "harrison"}}
+      ]
+    }
+  }
+}
+
+#The Need for Nested Types
+DELETE companies
+
+PUT companies/doc/1
+{
+  "name" : "Stark Enterprises",
+  "employees" : [
+      {"first_name" : "Tony", "last_name" : "Stark"},
+      {"first_name" : "Virginia", "last_name" : "Potts"}
+    ]
+}
+
+PUT companies/doc/2
+{
+  "name" : "NBC Universal",
+  "employees" : [
+      {"first_name" : "Tony", "last_name" : "Potts"}
+    ]
+}
+
+GET companies/_search
+
+GET companies/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"employees.first_name": "Tony"}},
+        {"match": {"employees.last_name": "Potts"}}
+      ]
+    }
+  }
+}
+
+GET companies/_mappings
+
+#Nested Types
+DELETE companies
+
+PUT companies
+{
+ "mappings": {
+   "doc": {
+     "properties": {
+       "employees": {
+         "type": "nested", 
+         "properties": {
+           "first_name": {
+             "type": "text",
+             "fields": {
+               "keyword": {
+                 "type": "keyword",
+                 "ignore_above": 256
+               }
+             }
+           },
+           "last_name": {
+             "type": "text",
+             "fields": {
+               "keyword": {
+                 "type": "keyword",
+                 "ignore_above": 256
+               }
+             }
+           }
+         }
+       },
+       "name": {
+         "type": "text",
+         "fields": {
+           "keyword": {
+             "type": "keyword",
+             "ignore_above": 256
+           }
+         }
+       }
+     }
+   }
+ }
+}  
+
+PUT companies/doc/1
+{
+  "name" : "Stark Enterprises",
+  "employees" : [
+      {"first_name" : "Tony", "last_name" : "Stark"},
+      {"first_name" : "Virginia", "last_name" : "Potts"}
+    ]
+}
+
+PUT companies/doc/2
+{
+  "name" : "NBC Universal",
+  "employees" : [
+      {"first_name" : "Tony", "last_name" : "Potts"}
+    ]
+}
+
+#Querying on a Nested Type
+GET companies/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "query": {
+        "bool": {
+          "must": [
+            {"match": {"employees.first_name": "Tony"}},
+            {"match": {"employees.last_name": "Potts"}}
+          ]
+        }
+      }
+    }
+  }
+}
+
+GET companies/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "query": {
+        "match": {
+          "employees.first_name": "Tony"
+        }
+      }
+    }
+  }
+}
+
+GET companies/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "query": {
+        "match": {
+          "employees.first_name": "Tony"
+        }
+      },
+      "inner_hits" : {}
+    }
+  }
+}
+
+#Sorting on a Nested Type
+#This query sorts over all docs 
+GET companies/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "query": {
+        "match": {"employees.last_name": "Potts"}
+      }
+    }
+  },
+  "sort": {
+    "employees.first_name.keyword" : {
+      "order" : "asc",
+      "nested_path" : "employees"
+    }
+  }
+}
+
+#This query sorts properly over the hits
+GET companies/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "query": {
+        "match": {"employees.last_name": "Potts"}
+      }
+    }
+  },
+  "sort": {
+    "employees.first_name.keyword" : {
+      "order" : "asc",
+      "nested_path": "employees",
+      "nested_filter" : {
+        "match": {"employees.last_name": "Potts"}
+      }
+    }
+  }
+}
+
+#The Nested Aggregation
+GET companies/_search
+{
+  "size": 0,
+  "aggs": {
+    "my_employees_bucket": {
+      "nested": {
+        "path": "employees"
+      }
+    }
+  }
+}
+
+GET companies/_search
+{
+  "size": 0,
+  "aggs": {
+    "my_employees_bucket": {
+      "nested": {
+        "path": "employees"
+      },
+      "aggs": {
+        "last_name": {
+          "terms": {
+            "field" : "employees.last_name.keyword"
+          }
+        }
+      }
+    }
+  }
+}
+
+#Parent/Child Types
+DELETE companies
+
+PUT companies
+{
+  "mappings": {
+    "company" : {},
+    "employee" : {
+      "_parent": {
+        "type": "company"
+      }
+    }
+  }
+}
+
+PUT companies/company/c1
+{
+  "name" : "Stark Enterprises"
+}
+
+PUT companies/company/c2
+{
+  "name" : "NBC Universal"
+}
+
+PUT companies/employee/emp1?parent=c1
+{
+  "first_name" : "Tony", 
+  "last_name" : "Stark" 
+}
+
+PUT companies/employee/emp2?parent=c1
+{
+  "first_name" : "Virginia", 
+  "last_name" : "Potts"
+}
+
+PUT companies/employee/emp3?parent=c2
+{
+  "first_name" : "Tony", 
+  "last_name" : "Potts" 
+}
+
+GET companies/_search
+
+#No routing parameter
+GET companies/employee/emp1
+
+#With a routing parameter
+GET companies/employee/emp1?parent=c1
+
+#The has_child Query
+GET companies/company/_search
+{
+  "query": {
+    "has_child": {
+      "type": "employee",
+      "query": {
+        "match": {
+          "last_name": "Stark"
+        }
+      }
+    }
+  }
+}
+
+GET companies/company/_search
+{
+  "query": {
+    "has_child": {
+      "type": "employee",
+      "query": {
+        "match": {
+          "last_name": "Stark"
+        }
+      },
+      "inner_hits" : {}
+    }
+  }
+}
+
+#The has_parent Query
+GET companies/employee/_search
+{
+  "query": {
+    "has_parent": {
+      "parent_type": "company",
+      "query": {
+        "match": {
+          "name": "NBC"
+        }
+      }
+    }
+  }
+}
+
+POST companies/employee/emp1/_update?parent=c1
+{
+  "doc" : {
+    "first_name" : "Anthony"
+  }
+}
+
+GET companies/_search
